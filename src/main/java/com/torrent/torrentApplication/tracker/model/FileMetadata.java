@@ -15,9 +15,11 @@ public class FileMetadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long file_id;
 
-
     @Column(unique = true,name = "share_code")
     private String shareCode;
+
+    @Column(unique = true,name = "file_hash")
+    private String fileHash;
 
     @Column(name = "file_name")
     private String fileName;

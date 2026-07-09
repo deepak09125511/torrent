@@ -11,11 +11,11 @@ import java.nio.file.Paths;
 public class FileSplitterService {
     private static final int PIECE_SIZE = 512 * 1024;
 
-    public int splitFile(File file) throws IOException {
+    public int splitFile(File file,Long file_id) throws IOException {
 
         String fileName = file.getName();
 
-        Path outputDir = Paths.get("peer-storage", fileName);
+        Path outputDir = Paths.get("peer-storage", "file_" + file_id);
 
         Files.createDirectories(outputDir);
 

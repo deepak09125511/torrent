@@ -10,14 +10,14 @@ import java.nio.file.Paths;
 @Service
 public class PieceService {
 
-    private static final String STORAGE_PATH = "peer_storage/";
+    private static final String STORAGE_PATH = "peer-storage/";
 
     public byte[] getPiece(Long fileId, Integer pieceIndex) {
         try {
             Path path = Paths.get(
                     STORAGE_PATH,
                     "file_" + fileId,
-                    "piece_" + pieceIndex
+                    "piece_" + pieceIndex + ".bin"
             );
 
             return Files.readAllBytes(path);

@@ -9,7 +9,7 @@ public class TrackerClient {
     private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String TRACKER_URL =
-            "http://localhost:8080/api/files";
+            "http://localhost:8080/api";
 
     public SwarmResponseDTO getSwarm(String shareCode) {
         String url = TRACKER_URL + "/swarm/" + shareCode;
