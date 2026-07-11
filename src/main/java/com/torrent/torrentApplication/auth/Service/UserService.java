@@ -3,14 +3,17 @@ package com.torrent.torrentApplication.auth.Service;
 import com.torrent.torrentApplication.auth.Model.User;
 
 import com.torrent.torrentApplication.auth.Repository.UserRepository;
+import com.torrent.torrentApplication.security.CustomUserDetailsService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final CustomUserDetailsService customUserDetailsService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,CustomUserDetailsService customUserDetailsService) {
         this.userRepository = userRepository;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     public User registerUser(User user) {
