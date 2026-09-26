@@ -88,20 +88,21 @@ public class FileShareService {
             FileMetadata fileMetadata = new FileMetadata();
             fileMetadata.setFileName(fileName);
             fileMetadata.setFileSize(fileSize);
-            fileMetadata.setPieceSize(524288);
+            int pieceSize = 524288;
+
+            fileMetadata.setPieceSize(pieceSize);
             fileMetadata.setUploaderUserId(userId);
             fileMetadata.setFileHash(fileHash);
 
+            int pieceCount = (int) ((fileSize + pieceSize - 1) / pieceSize);
+            fileMetadata.setTotalPieces(pieceCount);
+            System.out.println("Total Pieces = " + fileMetadata.getTotalPieces());
             FileMetadata registeredFile =
                     fileService.RegisterFile(fileMetadata);
 
             Long fileId = registeredFile.getFile_id();
 
-            int pieceCount =
-                    fileSplitterService.splitFile(file, fileId);
-
-            registeredFile.setTotalPieces(pieceCount);
-
+            fileSplitterService.splitFile(file, fileId);
             fileService.save(registeredFile);
 
             Peer peer = peerRepository

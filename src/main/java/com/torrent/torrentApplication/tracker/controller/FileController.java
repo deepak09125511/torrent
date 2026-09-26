@@ -4,6 +4,7 @@ import com.torrent.torrentApplication.tracker.dto.FileListPerson;
 import com.torrent.torrentApplication.tracker.model.FileMetadata;
 import com.torrent.torrentApplication.tracker.service.FileService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,9 +34,14 @@ public class FileController {
         FileMetadata file = fileService.getFileByShareCode(shareCode);
         return ResponseEntity.ok(file);
     }
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<FileListPerson>> getListFile(@PathVariable Long userId){
-        List<FileListPerson> fileList = fileService.getFileByUserId(userId);
-        return ResponseEntity.ok(fileList);
+    @GetMapping("/my-files")
+    public ResponseEntity<List<FileListPerson>> getMyFiles(
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        return ResponseEntity.ok(
+                fileService.getFileByEmail(email)
+        );
     }
 }

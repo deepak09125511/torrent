@@ -10,6 +10,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -28,7 +29,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/users/login",
-                                "/api/users/register"
+                                "/api/users/register",
+                                "/download/**",
+                                "/api/piece/**",
+                                "/api/peer/share"
                         ).permitAll()
 
                         .anyRequest().authenticated()

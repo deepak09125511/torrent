@@ -6,7 +6,10 @@ import java.util.*;
 @Getter
 @Setter
 public class FileListPerson {
-    private int fileId;
+    private Long fileId;
     private String fileName;
+    private Long fileSize;
     private String shareCode;
+    private Integer totalNoOfPieces;
+    private Integer pieceSize;
 }

@@ -1,8 +1,11 @@
 package com.torrent.torrentApplication.peerDownloader.service;
-
+import java.io.FileNotFoundException;
+import java.util.concurrent.ConcurrentHashMap;
 import com.torrent.torrentApplication.peerDownloader.TrackerClient;
 import com.torrent.torrentApplication.tracker.dto.PeerSwarmDTO;
 import com.torrent.torrentApplication.tracker.dto.SwarmResponseDTO;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -20,6 +23,9 @@ import java.util.*;
 @Service
 public class DownloadManager {
 
+    private final ConcurrentHashMap<String, PeerStats> peerStats =
+            new ConcurrentHashMap<>();
+
     private final RestTemplate restTemplate;
     private final TrackerClient trackerClient;
 
@@ -31,19 +37,30 @@ public class DownloadManager {
         this.trackerClient = trackerClient;
     }
 
-    public void download(String shareCode) {
+    private PeerStats getPeerStats(PeerSwarmDTO peer) {
+
+        String key = peer.getIp() + ":" + peer.getPort();
+
+        return peerStats.computeIfAbsent(
+                key,
+                k -> new PeerStats()
+        );
+    }
+
+    public Long download(String shareCode) {
 
         SwarmResponseDTO swarm = trackerClient.getSwarm(shareCode);
 
         Long fileId = swarm.getFileId();
         List<PeerSwarmDTO> peers = swarm.getPeers();
-        int totalPieces = swarm.getPeers()
-                .stream()
+
+        int totalPieces = peers.stream()
                 .flatMap(p -> p.getPieces().stream())
                 .max(Integer::compareTo)
                 .orElse(0) + 1;
 
-        Map<Integer, List<PeerSwarmDTO>> pieceToPeers = buildMap(peers);
+        Map<Integer, List<PeerSwarmDTO>> pieceToPeers =
+                buildMap(peers);
 
         List<Future<?>> futures = new ArrayList<>();
 
@@ -51,24 +68,38 @@ public class DownloadManager {
 
             final int pieceIndex = i;
 
-            futures.add(executor.submit(() -> {
-                downloadPieceWithRetry(fileId, pieceIndex, pieceToPeers);
-            }));
+            futures.add(
+                    executor.submit(() ->
+                            downloadPieceWithRetry(
+                                    fileId,
+                                    pieceIndex,
+                                    pieceToPeers
+                            )
+                    )
+            );
         }
 
-        for (Future<?> f : futures) {
+        for (Future<?> future : futures) {
+
             try {
-                f.get();
+                future.get();
+
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
         try {
+
             mergeFile(fileId, totalPieces);
+
         } catch (IOException e) {
+
             throw new RuntimeException(e);
         }
+
+        // IMPORTANT
+        return fileId;
     }
 
     private Map<Integer, List<PeerSwarmDTO>> buildMap(List<PeerSwarmDTO> peers) {
@@ -91,25 +122,69 @@ public class DownloadManager {
             int pieceIndex,
             Map<Integer, List<PeerSwarmDTO>> pieceToPeers) {
 
-        List<PeerSwarmDTO> peers = pieceToPeers.get(pieceIndex);
+        List<PeerSwarmDTO> originalPeers = pieceToPeers.get(pieceIndex);
 
-        if (peers == null || peers.isEmpty()) {
-            throw new RuntimeException("No peer for piece " + pieceIndex);
+        if (originalPeers == null || originalPeers.isEmpty()) {
+            throw new RuntimeException("No peer available for piece " + pieceIndex);
         }
+
+        // Make a copy before sorting
+        List<PeerSwarmDTO> peers = new ArrayList<>(originalPeers);
+
+        // Highest score first
+        peers.sort((p1, p2) ->
+                Double.compare(
+                        getPeerStats(p2).getScore(),
+                        getPeerStats(p1).getScore()
+                )
+        );
 
         for (PeerSwarmDTO peer : peers) {
 
             try {
-                byte[] data = downloadFromPeer(peer, fileId, pieceIndex);
+
+                long start = System.currentTimeMillis();
+
+                byte[] data =
+                        downloadFromPeer(peer, fileId, pieceIndex);
+
+                long responseTime =
+                        System.currentTimeMillis() - start;
+
+                getPeerStats(peer)
+                        .recordSuccess(responseTime);
+
+                System.out.println(
+                        "Downloaded piece " + pieceIndex +
+                                " from " +
+                                peer.getIp() + ":" + peer.getPort() +
+                                " | Score = " +
+                                String.format("%.2f", getPeerStats(peer).getScore())
+                );
+
                 savePiece(fileId, pieceIndex, data);
+
                 return;
 
             } catch (Exception e) {
-                // try next peer
+
+                getPeerStats(peer)
+                        .recordFailure();
+
+                System.out.println(
+                        "Failed to download piece " + pieceIndex +
+                                " from " +
+                                peer.getIp() + ":" + peer.getPort() +
+                                " | Score = " +
+                                String.format("%.2f", getPeerStats(peer).getScore())
+                );
+                e.printStackTrace();
             }
         }
 
-        throw new RuntimeException("Failed to download piece " + pieceIndex);
+        throw new RuntimeException(
+                "Failed to download piece " + pieceIndex + " from all available peers."
+        );
     }
 
     private byte[] downloadFromPeer(
@@ -125,30 +200,59 @@ public class DownloadManager {
         return restTemplate.getForObject(url, byte[].class);
     }
 
-    private void savePiece(Long fileId, int index, byte[] data) throws IOException {
+    private void savePiece(Long fileId, int index, byte[] data)
+            throws IOException {
 
-        Path path = Paths.get("download_storage", "file_" + fileId);
+        Path path = Paths.get(
+                "download_storage",
+                "file_" + fileId
+        );
 
         Files.createDirectories(path);
 
-        Files.write(path.resolve("piece_" + index), data);
+        Files.write(
+                path.resolve("piece_" + index),
+                data
+        );
     }
 
-    private void mergeFile(Long fileId, int totalPieces) throws IOException {
+    private void mergeFile(Long fileId, int totalPieces)
+            throws IOException {
 
-        Path output = Paths.get("download_storage/file_" + fileId + "/final.mp4");
+        Path output =
+                Paths.get(
+                        "download_storage/file_" + fileId + "/final.mp4"
+                );
 
         try (OutputStream os = Files.newOutputStream(output)) {
 
             for (int i = 0; i < totalPieces; i++) {
 
-                Path piece = Paths.get(
-                        "download_storage/file_" + fileId,
-                        "piece_" + i
-                );
+                Path piece =
+                        Paths.get(
+                                "download_storage/file_" + fileId,
+                                "piece_" + i
+                        );
 
                 Files.copy(piece, os);
             }
         }
+    }
+
+    public Resource getDownloadedFile(Long fileId) throws IOException {
+
+        Path filePath = Paths.get(
+                "download_storage",
+                "file_" + fileId,
+                "final.mp4"
+        );
+
+        if (!Files.exists(filePath)) {
+            throw new FileNotFoundException(
+                    "Downloaded file not found for fileId: " + fileId
+            );
+        }
+
+        return new FileSystemResource(filePath);
     }
 }
