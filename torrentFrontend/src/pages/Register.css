@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Inter',sans-serif;
+}
+
+.register-page{
+
+    min-height:100vh;
+
+    display:flex;
+
+    background:
+    linear-gradient(
+        135deg,
+        #eff6ff,
+        #f8fafc
+    );
+}
+
+/* Left Side */
+
+.register-left{
+
+    flex:1;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+
+    padding:80px;
+
+    color:#1f2937;
+}
+
+.register-left h1{
+
+    color:#2563eb;
+
+    font-size:3rem;
+
+    margin-bottom:20px;
+}
+
+.register-left h2{
+
+    font-size:2rem;
+
+    margin-bottom:15px;
+}
+
+.register-left p{
+
+    font-size:1.1rem;
+
+    color:#6b7280;
+
+    max-width:450px;
+
+    line-height:1.8;
+}
+
+/* Right Side */
+
+.register-card{
+
+    width:500px;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+
+    padding:50px;
+
+    background:white;
+
+    box-shadow:
+    -10px 0 30px rgba(0,0,0,0.05);
+}
+
+.register-card h2{
+
+    font-size:2rem;
+
+    margin-bottom:10px;
+
+    color:#111827;
+}
+
+.subtitle{
+
+    color:#6b7280;
+
+    margin-bottom:30px;
+}
+
+.input-group{
+
+    display:flex;
+    flex-direction:column;
+
+    margin-bottom:18px;
+}
+
+.input-group label{
+
+    margin-bottom:8px;
+
+    font-weight:600;
+
+    color:#374151;
+}
+
+.input-group input{
+
+    padding:14px 16px;
+
+    border:1px solid #dbe2ea;
+
+    border-radius:12px;
+
+    font-size:15px;
+
+    background:#fafafa;
+
+    outline:none;
+
+    transition:0.2s;
+}
+
+.input-group input:focus{
+
+    border-color:#2563eb;
+
+    background:white;
+
+    box-shadow:
+    0 0 0 4px rgba(37,99,235,0.12);
+}
+
+.register-btn{
+
+    width:100%;
+
+    margin-top:10px;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#2563eb;
+
+    color:white;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.register-btn:hover{
+
+    background:#1d4ed8;
+
+    transform:translateY(-2px);
+}
+
+.login-link{
+
+    text-align:center;
+
+    margin-top:20px;
+
+    color:#6b7280;
+}
+
+/* Mobile */
+
+@media(max-width:900px){
+
+    .register-left{
+        display:none;
+    }
+
+    .register-card{
+        width:100%;
+    }
+}
